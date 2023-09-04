@@ -1,16 +1,16 @@
+use super::Result;
 use crate::chunk::Chunk;
 use std::fmt;
-use super::Result;
 
 pub struct Png {
     chunks: Vec<Chunk>,
 }
 
 impl Png {
-    pub const STANDARD_HEADER: [u8; 8] = [137, 80, 78, 71, 13, 20, 26, 10];
+    pub const STANDARD_HEADER: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
 
     fn from_chunks(chunks: Vec<Chunk>) -> Png {
-        Png { chunks  }
+        Png { chunks }
     }
 
     fn append_chunk(&mut self, chunk: Chunk) {
@@ -18,7 +18,11 @@ impl Png {
     }
 
     fn remove_chunk(&mut self, chunk_type: &str) -> Result<Chunk> {
-        if let Some(pos) = self.chunks.iter().position(|chunk| chunk.chunk_type().bytes() == chunk_type.as_bytes()) {
+        if let Some(pos) = self
+            .chunks
+            .iter()
+            .position(|chunk| chunk.chunk_type().bytes() == chunk_type.as_bytes())
+        {
             Ok(self.chunks.remove(pos))
         } else {
             Err("Not found".into())
@@ -34,15 +38,19 @@ impl Png {
     }
 
     fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
-        self.chunks.iter().find(|&&chunk| chunk.chunk_type().bytes() == chunk_type.as_bytes())
+        self.chunks
+            .iter()
+            .find(|&chunk| chunk.chunk_type().bytes() == chunk_type.as_bytes())
     }
 
     fn as_bytes(&self) -> Vec<u8> {
-        let bytes: Vec<u8> = Vec::with_capacity(8 + self.chunks.len());
+        let mut bytes: Vec<u8> = Vec::with_capacity(8 + self.chunks.len());
         bytes.extend_from_slice(&Self::STANDARD_HEADER);
-        self.chunks.iter().map(|chunk| bytes.extend(&chunk.as_bytes()));
+        self.chunks
+            .iter()
+            .for_each(|chunk| bytes.extend(&chunk.as_bytes()));
         bytes
-    }   
+    }
 }
 
 impl TryFrom<&[u8]> for Png {
@@ -54,14 +62,19 @@ impl TryFrom<&[u8]> for Png {
             return Err("Header not valid".into());
         }
 
-        let index = 8;
-        let chunks: Vec<Chunk> = Vec::new();
-        while index < bytes.len() {
-            let chunk_length: u32 = u32::from_be_bytes(bytes[index..index+4].try_into()?);
+        let mut index = 8;
+        let mut chunks: Vec<Chunk> = Vec::new();
 
-            let chunk = Chunk::try_from(&bytes[index..index+chunk_length])
+        while index < bytes.len() {
+            eprintln!("hello");
+            let chunk_length: usize =
+                u32::from_be_bytes(bytes[index..index + 4].try_into()?).try_into()?;
+            let chunk = Chunk::try_from(&bytes[index..index + chunk_length + 12])?;
+            chunks.push(chunk);
+            index += chunk_length + 12;
         }
-        Ok(())
+
+        Ok(Png { chunks })
     }
 }
 
