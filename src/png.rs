@@ -9,15 +9,15 @@ pub struct Png {
 impl Png {
     pub const STANDARD_HEADER: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
 
-    fn from_chunks(chunks: Vec<Chunk>) -> Png {
+    pub fn from_chunks(chunks: Vec<Chunk>) -> Png {
         Png { chunks }
     }
 
-    fn append_chunk(&mut self, chunk: Chunk) {
+    pub fn append_chunk(&mut self, chunk: Chunk) {
         self.chunks.push(chunk)
     }
 
-    fn remove_chunk(&mut self, chunk_type: &str) -> Result<Chunk> {
+    pub fn remove_chunk(&mut self, chunk_type: &str) -> Result<Chunk> {
         if let Some(pos) = self
             .chunks
             .iter()
@@ -29,7 +29,7 @@ impl Png {
         }
     }
 
-    fn header(&self) -> &[u8; 8] {
+    pub fn header(&self) -> &[u8; 8] {
         &Self::STANDARD_HEADER
     }
 
@@ -37,13 +37,13 @@ impl Png {
         &self.chunks
     }
 
-    fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
+    pub fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
         self.chunks
             .iter()
             .find(|&chunk| chunk.chunk_type().bytes() == chunk_type.as_bytes())
     }
 
-    fn as_bytes(&self) -> Vec<u8> {
+    pub fn as_bytes(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::with_capacity(8 + self.chunks.len());
         bytes.extend_from_slice(&Self::STANDARD_HEADER);
         self.chunks
@@ -66,7 +66,6 @@ impl TryFrom<&[u8]> for Png {
         let mut chunks: Vec<Chunk> = Vec::new();
 
         while index < bytes.len() {
-            eprintln!("hello");
             let chunk_length: usize =
                 u32::from_be_bytes(bytes[index..index + 4].try_into()?).try_into()?;
             let chunk = Chunk::try_from(&bytes[index..index + chunk_length + 12])?;
